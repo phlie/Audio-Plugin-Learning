@@ -19,7 +19,7 @@ SimpleStereoGainAdjustAudioProcessor::SimpleStereoGainAdjustAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), apvts(*this, nullptr, "PARAMETERS", createParams())
 #endif
 {
 }
@@ -152,8 +152,12 @@ void SimpleStereoGainAdjustAudioProcessor::processBlock (juce::AudioBuffer<float
     // interleaved by keeping the same state.
 
     // To get the volume we need to find the absolute value of each sample in the buffer for each channel and remember it.
-    auto maxChannelR= 0.0f;
-    auto maxChannelL = 0.0f;
+    //auto maxChannelR= 0.0f;
+    //auto maxChannelL = 0.0f;
+
+    auto* mainGain = apvts.getRawParameterValue("MAINGAIN");
+    auto* leftGain = apvts.getRawParameterValue("LEFTGAIN");
+    auto* rightGain = apvts.getRawParameterValue("RIGHTGAIN");
 
     // Loop through all the available output channels
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
@@ -162,26 +166,26 @@ void SimpleStereoGainAdjustAudioProcessor::processBlock (juce::AudioBuffer<float
         if (channel == 0)
         {
             // Get the max value for that channel.
-            maxChannelL = buffer.getMagnitude(0, 0, buffer.getNumSamples());
+            maxChannelLeftVolume = buffer.getMagnitude(0, 0, buffer.getNumSamples());
             // Apply the correct gain to the left channel
-            buffer.applyGain(0, 0, buffer.getNumSamples(), 0.1f);
+            buffer.applyGain(0, 0, buffer.getNumSamples(), leftGain->load());
         }
         // Same for the right channel...
         else if (channel == 1)
         {
-            maxChannelR = buffer.getMagnitude(1, 0, buffer.getNumSamples());
+            maxChannelRightVolume = buffer.getMagnitude(1, 0, buffer.getNumSamples());
             // Apply the correct gain to the right channel.
-            buffer.applyGain(1, 0, buffer.getNumSamples(), 0.8f);
+            buffer.applyGain(1, 0, buffer.getNumSamples(), rightGain->load());
         }
         // Finally apply the overall gain value
-        buffer.applyGain(0, buffer.getNumSamples(), 0.9f);
+        buffer.applyGain(0, buffer.getNumSamples(), mainGain->load());
     }
 }
 
 //==============================================================================
 bool SimpleStereoGainAdjustAudioProcessor::hasEditor() const
 {
-    return true; // (change this to false if you choose to not supply an editor)
+    return false; // (change this to false if you choose to not supply an editor)
 }
 
 juce::AudioProcessorEditor* SimpleStereoGainAdjustAudioProcessor::createEditor()
@@ -201,6 +205,17 @@ void SimpleStereoGainAdjustAudioProcessor::setStateInformation (const void* data
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout SimpleStereoGainAdjustAudioProcessor::createParams()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("MAINGAIN", "Main Gain", 0.0f, 1.0f, 1.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LEFTGAIN", "Left Gain", 0.0f, 1.0f, 1.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("RIGHTGAIN", "Right Gain", 0.0f, 1.0f, 1.0f));
+
+    return layout;
 }
 
 //==============================================================================

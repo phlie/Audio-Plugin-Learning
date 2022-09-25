@@ -56,7 +56,16 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    std::atomic<float>& getLeftChannelVolume()  { return maxChannelLeftVolume; };
+    std::atomic<float>& getRightChannelVolume() { return maxChannelRightVolume; };
+
 private:
+    juce::AudioProcessorValueTreeState apvts;
+
+    juce::AudioProcessorValueTreeState::ParameterLayout createParams();
+
+    std::atomic<float> maxChannelLeftVolume;
+    std::atomic<float> maxChannelRightVolume;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleStereoGainAdjustAudioProcessor)
 };
