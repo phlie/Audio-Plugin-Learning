@@ -150,11 +150,31 @@ void SimpleStereoGainAdjustAudioProcessor::processBlock (juce::AudioBuffer<float
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
+
+    // To get the volume we need to find the absolute value of each sample in the buffer for each channel and remember it.
+    auto maxChannelR= 0.0f;
+    auto maxChannelL = 0.0f;
+
+    // Loop through all the available output channels
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
-        auto* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
+        // If it is the left channel...
+        if (channel == 0)
+        {
+            // Get the max value for that channel.
+            maxChannelL = buffer.getMagnitude(0, 0, buffer.getNumSamples());
+            // Apply the correct gain to the left channel
+            buffer.applyGain(0, 0, buffer.getNumSamples(), 0.1f);
+        }
+        // Same for the right channel...
+        else if (channel == 1)
+        {
+            maxChannelR = buffer.getMagnitude(1, 0, buffer.getNumSamples());
+            // Apply the correct gain to the right channel.
+            buffer.applyGain(1, 0, buffer.getNumSamples(), 0.8f);
+        }
+        // Finally apply the overall gain value
+        buffer.applyGain(0, buffer.getNumSamples(), 0.9f);
     }
 }
 
