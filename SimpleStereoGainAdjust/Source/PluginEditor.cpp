@@ -13,8 +13,16 @@
 SimpleStereoGainAdjustAudioProcessorEditor::SimpleStereoGainAdjustAudioProcessorEditor (SimpleStereoGainAdjustAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
+    gainLeftAttach = std::make_unique<Attach>(audioProcessor.getAPVTS(), "LEFTGAIN", gainLeftSlider);
+    gainRightAttach = std::make_unique<Attach>(audioProcessor.getAPVTS(), "RIGHTGAIN", gainRightSlider);
+    gainMainAttach = std::make_unique<Attach>(audioProcessor.getAPVTS(), "MAINGAIN", gainMainSlider);
+    
+    setupSlider(gainLeftSlider);
+    setupSlider(gainRightSlider);
+    setupSlider(gainMainSlider);
+
+    startTimerHz(60);
+
     setSize (400, 300);
 }
 
@@ -25,16 +33,35 @@ SimpleStereoGainAdjustAudioProcessorEditor::~SimpleStereoGainAdjustAudioProcesso
 //==============================================================================
 void SimpleStereoGainAdjustAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+    g.fillAll(juce::Colours::black);
+    g.setColour(juce::Colours::blanchedalmond);
 
-    g.setColour (juce::Colours::white);
-    g.setFont (15.0f);
-    g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);
+    auto& volumeLeft = audioProcessor.getLeftChannelVolume();
+    auto& volumeRight = audioProcessor.getRightChannelVolume();
+
+    g.fillRect(gainLeftSlider.getRight(), (int)(300.f * (1.0f - volumeLeft.load())), (int)(getWidth() * 0.15f), getHeight());
+    g.fillRect(gainMainSlider.getRight(), (int)(300.f * (1.0f - volumeRight.load())), (int)(getWidth() * 0.15f), getHeight());
+
 }
 
 void SimpleStereoGainAdjustAudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
+    gainLeftSlider.setBoundsRelative(0.0f, 0.0f, 0.2f, 1.0f);
+    gainRightSlider.setBoundsRelative(0.8f, 0.0f, 0.2f, 1.0f);
+    gainMainSlider.setBoundsRelative(0.35f, 0.0f, 0.3f, 1.0f);
+}
+
+void SimpleStereoGainAdjustAudioProcessorEditor::setupSlider(juce::Slider& slider)
+{
+    slider.setSliderStyle(juce::Slider::LinearBarVertical);
+    slider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 40, 20);
+    slider.setColour(juce::Slider::ColourIds::thumbColourId, juce::Colours::darkslateblue);
+    //slider.setColour(juce::Slider::ColourIds::backgroundColourId, juce::Colours::hotpink);
+    slider.setColour(juce::Slider::ColourIds::trackColourId, juce::Colours::lime);
+    addAndMakeVisible(slider);
+}
+
+void SimpleStereoGainAdjustAudioProcessorEditor::timerCallback()
+{
+    repaint();
 }

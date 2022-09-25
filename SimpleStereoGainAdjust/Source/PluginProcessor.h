@@ -59,6 +59,8 @@ public:
     std::atomic<float>& getLeftChannelVolume()  { return maxChannelLeftVolume; };
     std::atomic<float>& getRightChannelVolume() { return maxChannelRightVolume; };
 
+    juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; };
+
 private:
     juce::AudioProcessorValueTreeState apvts;
 

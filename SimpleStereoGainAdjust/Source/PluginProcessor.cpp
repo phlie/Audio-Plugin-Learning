@@ -185,7 +185,7 @@ void SimpleStereoGainAdjustAudioProcessor::processBlock (juce::AudioBuffer<float
 //==============================================================================
 bool SimpleStereoGainAdjustAudioProcessor::hasEditor() const
 {
-    return false; // (change this to false if you choose to not supply an editor)
+    return true; // (change this to false if you choose to not supply an editor)
 }
 
 juce::AudioProcessorEditor* SimpleStereoGainAdjustAudioProcessor::createEditor()
