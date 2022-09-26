@@ -57,8 +57,14 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 private:
+    // Holds the Samples accumulating in the flip.
     double samplesForThisFlip{ 0.0f };
+
+    // Is Used to store the amount of time in seconds until a flip.
     double lengthUntilFlip{ 0.5f };
+
+    // The actual knob that controls how often it flips left for right.
+    juce::AudioParameterFloat* flipPeriod;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleStereoFlipperAudioProcessor)

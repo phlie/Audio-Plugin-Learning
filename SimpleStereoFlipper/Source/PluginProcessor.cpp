@@ -22,6 +22,8 @@ SimpleStereoFlipperAudioProcessor::SimpleStereoFlipperAudioProcessor()
                        )
 #endif
 {
+    // Adds a single parameter that allows the musician to adjust the Flip Period on a knob.
+    addParameter(flipPeriod = new juce::AudioParameterFloat("FLIP PERIOD", "Flip Period", 0.01f, 2.5f, 0.25f));
 }
 
 SimpleStereoFlipperAudioProcessor::~SimpleStereoFlipperAudioProcessor()
@@ -150,28 +152,49 @@ void SimpleStereoFlipperAudioProcessor::processBlock (juce::AudioBuffer<float>& 
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
+
+    // If it is not on a stereo in and out channel, throw an error and exit.
     if (getNumInputChannels() < 2 || getNumOutputChannels() < 2) { jassertfalse; };
 
+    // Get a Write Pointer for both the Left and Right Channels.
     auto* channelDataL = buffer.getWritePointer(0);
     auto* channelDataR = buffer.getWritePointer(1);
 
+    // Remember that how long a second is is determined by the Sample Rate when measuring using samples.
     const double sampleRate = getSampleRate();
 
+    // Get the Flip Period knobs value and update the lengthUntilFlip which is the amount of seconds before a flip occurs.
+    lengthUntilFlip = flipPeriod->get();
+
+    // Loop through all the samples in the buffer...
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
+        // When it is within the first period, flip the channels.
         if (samplesForThisFlip < lengthUntilFlip * sampleRate)
         {
+            // Temporary holds the right channels data
             float tempHolderRight = channelDataR[sample];
+            
+            // The left channel's data is coppied over to the right's, erasing what was there previously.
             channelDataR[sample] = channelDataL[sample];
+            
+            // Now add back in the temp Right Channel Sample to the Left Channel, completing the channel flip. 
             channelDataL[sample] = tempHolderRight;
+
+            // Increment the sample count for this flip
             samplesForThisFlip++;
         }
+        // When it is within the second period, keep the Left as the Left and the Right as the Right
         else if (samplesForThisFlip < lengthUntilFlip * 2.0f * sampleRate)
         {
+            // To illustrate what the algorithm does, I decided to show Left stays Left and Right stays right
             channelDataL[sample] = channelDataL[sample];
             channelDataR[sample] = channelDataR[sample];
+
+            // Still, an increment to the total samples made this cycle is necessary.
             samplesForThisFlip++;
         }
+        // Finally if over a double period length in samples, set samplesForThisFlip back to 0
         else
         {
             samplesForThisFlip = 0.0f;
