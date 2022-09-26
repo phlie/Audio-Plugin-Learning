@@ -9,6 +9,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Data/FilterData.h"
 
 //==============================================================================
 /**
@@ -57,6 +58,12 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 private:
+    //juce::dsp::StateVariableFilter::Filter<float> filter;
+
+    juce::AudioProcessorValueTreeState apvts;
+    juce::AudioProcessorValueTreeState::ParameterLayout createParams();
+
+    FilterData filter;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleFilterAudioProcessor)
 };

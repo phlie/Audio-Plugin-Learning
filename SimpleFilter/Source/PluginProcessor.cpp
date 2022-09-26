@@ -19,7 +19,7 @@ SimpleFilterAudioProcessor::SimpleFilterAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), apvts(*this, nullptr, "PARAMETERS", createParams())
 #endif
 {
 }
@@ -93,8 +93,7 @@ void SimpleFilterAudioProcessor::changeProgramName (int index, const juce::Strin
 //==============================================================================
 void SimpleFilterAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    filter.prepareToPlay(sampleRate, samplesPerBlock, getNumOutputChannels());
 }
 
 void SimpleFilterAudioProcessor::releaseResources()
@@ -150,18 +149,23 @@ void SimpleFilterAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
 
+    auto* cutoffFrequency = apvts.getRawParameterValue("CUTOFF");
+    auto* resonance = apvts.getRawParameterValue("RES");
+
+    filter.updateParameters(cutoffFrequency->load(), resonance->load());
+
+    //juce::AudioBuffer<float> audioBuff{ buffer };
+    filter.process(buffer);
+    //buffer.addFrom(channel, 0, audioBuff, 0, 0, audioBuff.getNumSamples());
+    buffer.copyFrom(1, 0, buffer, 0, 0, buffer.getNumSamples());
         // ..do something to the data...
-    }
 }
 
 //==============================================================================
 bool SimpleFilterAudioProcessor::hasEditor() const
 {
-    return true; // (change this to false if you choose to not supply an editor)
+    return false; // (change this to false if you choose to not supply an editor)
 }
 
 juce::AudioProcessorEditor* SimpleFilterAudioProcessor::createEditor()
@@ -181,6 +185,16 @@ void SimpleFilterAudioProcessor::setStateInformation (const void* data, int size
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout SimpleFilterAudioProcessor::createParams()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("CUTOFF", "Cutoff", 20.0f, 20000.0f, 500.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("RES", "Resonance", 1.0f, 10.0f, 2.5f));
+
+    return layout;
 }
 
 //==============================================================================
