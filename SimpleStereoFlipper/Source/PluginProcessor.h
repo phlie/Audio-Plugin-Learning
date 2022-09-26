@@ -57,6 +57,9 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 private:
+    double samplesForThisFlip{ 0.0f };
+    double lengthUntilFlip{ 0.5f };
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleStereoFlipperAudioProcessor)
 };

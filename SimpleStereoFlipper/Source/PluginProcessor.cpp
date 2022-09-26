@@ -150,11 +150,32 @@ void SimpleStereoFlipperAudioProcessor::processBlock (juce::AudioBuffer<float>& 
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
+    if (getNumInputChannels() < 2 || getNumOutputChannels() < 2) { jassertfalse; };
 
-        // ..do something to the data...
+    auto* channelDataL = buffer.getWritePointer(0);
+    auto* channelDataR = buffer.getWritePointer(1);
+
+    const double sampleRate = getSampleRate();
+
+    for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+    {
+        if (samplesForThisFlip < lengthUntilFlip * sampleRate)
+        {
+            float tempHolderRight = channelDataR[sample];
+            channelDataR[sample] = channelDataL[sample];
+            channelDataL[sample] = tempHolderRight;
+            samplesForThisFlip++;
+        }
+        else if (samplesForThisFlip < lengthUntilFlip * 2.0f * sampleRate)
+        {
+            channelDataL[sample] = channelDataL[sample];
+            channelDataR[sample] = channelDataR[sample];
+            samplesForThisFlip++;
+        }
+        else
+        {
+            samplesForThisFlip = 0.0f;
+        }
     }
 }
 
@@ -166,7 +187,11 @@ bool SimpleStereoFlipperAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* SimpleStereoFlipperAudioProcessor::createEditor()
 {
-    return new SimpleStereoFlipperAudioProcessorEditor (*this);
+    // Uses the default JUCE interface which is better than the default DAW editor for testing.
+    return new juce::GenericAudioProcessorEditor(this);
+
+    // Creates an Editor object with a reference to the AudioProcessor that it stores internally for intra communication.
+    //return new SimpleStereoFlipperAudioProcessorEditor (*this);
 }
 
 //==============================================================================
