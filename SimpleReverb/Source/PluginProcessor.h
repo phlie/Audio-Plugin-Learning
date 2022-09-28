@@ -60,8 +60,27 @@ private:
     // The default reverb supplied within the DSP framework
     juce::dsp::Reverb reverb;
 
-    // A multi-channel buffer containing floating point audio samples.
-    //juce::AudioBuffer<float> mainBuffer;
+
+    // A circular buffer meant to hold the previous data.
+    juce::AudioBuffer<float> circleBuffer;
+
+    // Sample Rate
+    float setSampleRate{ 44800.0f };
+
+    // How long the read heads delay is behind the write head in samples.
+    float delayTimeSeconds{ 0.03f };
+
+    // This the is the maximum setable delay.
+    const float maxDelayTimeSeconds{ 0.1f };
+
+    // How far behind the read head is in samples
+    int readHeadDelaySamples{ 0 };
+
+    // The current position of the write head.
+    int writeHeadSamplePosition{ 0 };
+
+    // The amount of the read signal that is applied to the current signal.
+    float combFeedback{ 0.92f };
 
     // The ValueTreeState object
     juce::AudioProcessorValueTreeState apvts;

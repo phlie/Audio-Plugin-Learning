@@ -255,17 +255,20 @@ float SimpleDistortionAudioProcessor::waveFolder(float& signal, float& threshold
         i++;
     }
 
+    // It was the previous loop index that is the most that can be taken away.
+    i--;
+
     // The output defaults to 0
     float output = 0.0f;
 
     // The total used is the total lengths of the trips between 0 and the threshold minus the last trip.
-    auto totalUsed = ((i - 1) * threshold);
+    auto totalUsed = (i * threshold);
 
     // Then the total left over is easily calculated by minusing the total length of the journey.
     auto totalLeft = signal - totalUsed;
 
     // If it is a even number, it is just the difference between 0 and the total left.
-    if ((i - 1) % 2 == 0)
+    if (i % 2 == 0)
     {
         output = totalLeft;
     }

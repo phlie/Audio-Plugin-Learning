@@ -105,6 +105,19 @@ void SimpleReverbAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
     // Prepare the reverb for play.
     reverb.prepare(spec);
 
+
+
+    setSampleRate = sampleRate;
+
+    // Sets how many samples behind the write head the read head is. Start at its max value
+    readHeadDelaySamples = sampleRate * maxDelayTimeSeconds;
+
+    // Sets the size of the circular buffer. As 4 times the maxDelay length.
+    circleBuffer.setSize(getNumInputChannels(), maxDelayTimeSeconds * sampleRate * 2, false, false, true);
+
+    // Clear the contents of the circleBuffer for now
+    circleBuffer.clear();
+
 }
 
 void SimpleReverbAudioProcessor::releaseResources()
@@ -168,9 +181,49 @@ void SimpleReverbAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // Set the reverb params.
     reverb.setParameters(reverbParams);
 
-    //mainBuffer.setSize(buffer.getNumChannels(), buffer.getNumSamples(), false, false, true);
-    //mainBuffer.clear();
+    float mix = apvts.getRawParameterValue("MIX")->load();
+    float delayLine = apvts.getRawParameterValue("DELAYLINE")->load();
+    float feedback = apvts.getRawParameterValue("FEEDBACK")->load();
 
+    //readHeadDelaySamples = (int)((float)setSampleRate * delayLine);
+    readHeadDelaySamples = 1000;
+
+    for (int channel = 0; channel < getNumInputChannels(); ++channel)
+    {
+        // The two buffers for the respective data.
+        auto incomingData = buffer.getWritePointer(channel);
+        auto circleRead = circleBuffer.getReadPointer(channel);
+        auto circleWrite = circleBuffer.getWritePointer(channel);
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        {
+            // The clean signal coming through.
+            float cleanSignal = incomingData[sample];
+
+            // Get the current readPosition which is the current position of the circle buffer write head - the delay in samples
+            int readPos = writeHeadSamplePosition - readHeadDelaySamples;
+
+            // If the read position is in the negatives, its actual position is simply the length of the buffer minus its magnitute
+            if (readPos < 0)
+                readPos = circleBuffer.getNumSamples() + readPos;
+
+            // The total signal is just the feedback + the current incoming audio. With the feedback being channgable.
+            // Divide by the total max volume of the feedback data and incoming data
+            float signal = (feedback * circleRead[readPos]);// + incomingData[sample]) / (1.0f + feedback);
+
+            // The value to output is just the signal with an option to change the wet/dry
+            incomingData[sample] = signal; //* mix + cleanSignal * (1.0f - mix);
+
+            // The value at the Circle buffer read head position is the same.
+            circleWrite[writeHeadSamplePosition] = incomingData[sample];
+
+            // Increment the write head position.
+            writeHeadSamplePosition++;
+
+            // If the Write Head Position is the same size as the circleBuffer after incrementing, return it back to 0.
+            if (writeHeadSamplePosition >= circleBuffer.getNumSamples())
+                writeHeadSamplePosition = 0;
+        }
+    }
     // Creats an instance of an AudioBlock of type float out of the buffer object
     juce::dsp::AudioBlock<float> block{ buffer };
     
@@ -241,6 +294,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleReverbAudioProcessor::
     layout.add(std::make_unique<juce::AudioParameterFloat>("DAMPING", "Damping", 0.0, 1.0f, 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("WIDTH", "Width", 0.0, 1.0f, 0.75f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("FREEZE", "Freeze", 0.0, 1.0f, 0.0f));
+
+    // Parameters for the Comb Reverb
+    layout.add(std::make_unique<juce::AudioParameterFloat>("MIX", "Mix", 0.0f, 1.0f, 1.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("DELAYLINE", "Delay Line", 0.00f, maxDelayTimeSeconds, 0.05f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("FEEDBACK", "Feedback", 0.0f, 1.0f, 0.99f));
 
     // Return the parameter layout.
     return layout;
