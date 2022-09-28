@@ -160,7 +160,11 @@ void SimpleDistortionAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
         // Increment over all the samples in the buffer.
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            // Store the input temporarily
+            // Call the Wave Folder algorithm on the sample and save it back.
+            channelData[sample] = waveFolder(channelData[sample], threshold);
+        }
+
+            /*// Store the input temporarily
             float input = channelData[sample];
 
             // If the input is greater than the threshold, fold...
@@ -185,8 +189,7 @@ void SimpleDistortionAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
             {
                 // No folding has occured.
                 channelData[sample] = input;
-            }
-        }
+            } */
     }
 }
 
@@ -226,6 +229,55 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleDistortionAudioProcess
     layout.add(std::make_unique<juce::AudioParameterFloat>("THRESHOLD", "Threshold", 0.0f, 1.0f, 1.0f));
 
     return layout;
+}
+
+float SimpleDistortionAudioProcessor::waveFolder(float& signal, float& threshold)
+{
+    // Start assuming it is positive
+    bool isPositive = true;
+
+    // If the signal is negative, convert it to positive and erase the isPositive flag
+    if (signal < 0.0f)
+    { 
+        isPositive = false;
+        signal = -signal;
+    }
+
+    // t = 0.75 s = 1.0    t = 0.2  s = 0.9 i = 5 total Used = 4 * 0.2 = 0.8 total left = 0.1 
+
+    // The loop starts at increment 0
+    int i = 0;
+
+    // Until it is on the signals last bouncy journey.
+    while (i * threshold < signal)
+    {
+        // Increment the counter
+        i++;
+    }
+
+    // The output defaults to 0
+    float output = 0.0f;
+
+    // The total used is the total lengths of the trips between 0 and the threshold minus the last trip.
+    auto totalUsed = ((i - 1) * threshold);
+
+    // Then the total left over is easily calculated by minusing the total length of the journey.
+    auto totalLeft = signal - totalUsed;
+
+    // If it is a even number, it is just the difference between 0 and the total left.
+    if ((i - 1) % 2 == 0)
+    {
+        output = totalLeft;
+    }
+
+    // If it has made an odd number of trips, it is the distance towards 0 from the threshold.
+    else
+    {
+        output = threshold - totalLeft;
+    }
+
+    // Finally, if it is a positive return it, and if it is a negative number convert it back to negative.
+    return isPositive ? output : -output;
 }
 
 //==============================================================================
